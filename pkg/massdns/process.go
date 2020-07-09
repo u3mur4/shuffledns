@@ -13,10 +13,10 @@ import (
 	"time"
 
 	"github.com/projectdiscovery/gologger"
-	"github.com/projectdiscovery/shuffledns/internal/store"
-	"github.com/projectdiscovery/shuffledns/pkg/parser"
 	"github.com/remeh/sizedwaitgroup"
 	"github.com/rs/xid"
+	"github.com/u3mur4/shuffledns/internal/store"
+	"github.com/u3mur4/shuffledns/pkg/parser"
 )
 
 // Process runs the actual enumeration process returning a file
@@ -28,12 +28,14 @@ func (c *Client) Process() error {
 	}
 
 	// Check for blank input file or non-existent input file
-	blank, err := IsBlankFile(inputFile)
-	if err != nil {
-		return err
-	}
-	if blank {
-		return errors.New("blank input file specified")
+	if c.config.Input == nil {
+		blank, err := IsBlankFile(inputFile)
+		if err != nil {
+			return err
+		}
+		if blank {
+			return errors.New("blank input file specified")
+		}
 	}
 
 	// Create a store for storing ip metadata
@@ -50,7 +52,7 @@ func (c *Client) Process() error {
 	if c.config.MassdnsRaw == "" {
 		// Create a temporary file for the massdns output
 		gologger.Infof("Creating temporary massdns output file: %s\n", massDNSOutput)
-		err = c.runMassDNS(massDNSOutput, shstore)
+		err := c.runMassDNS(massDNSOutput, shstore)
 		if err != nil {
 			return fmt.Errorf("could not execute massdns: %w", err)
 		}
@@ -58,7 +60,7 @@ func (c *Client) Process() error {
 
 	gologger.Infof("Started parsing massdns output\n")
 
-	err = c.parseMassDNSOutput(massDNSOutput, shstore)
+	err := c.parseMassDNSOutput(massDNSOutput, shstore)
 	if err != nil {
 		return fmt.Errorf("could not parse massdns output: %w", err)
 	}
@@ -89,7 +91,13 @@ func (c *Client) runMassDNS(output string, store *store.Store) error {
 	}
 	now := time.Now()
 	// Run the command on a temp file and wait for the output
-	cmd := exec.Command(c.config.MassdnsPath, []string{"-r", c.config.ResolversFile, "-o", "Snl", "-t", "A", c.config.InputFile, "-w", output, "-s", strconv.Itoa(c.config.Threads)}...)
+	var cmd *exec.Cmd
+	if c.config.Input != nil {
+		cmd = exec.Command(c.config.MassdnsPath, []string{"-r", c.config.ResolversFile, "-o", "Snl", "-t", "A", "-w", output, "-s", strconv.Itoa(c.config.Threads)}...)
+		cmd.Stdin = c.config.Input
+	} else {
+		cmd = exec.Command(c.config.MassdnsPath, []string{"-r", c.config.ResolversFile, "-o", "Snl", "-t", "A", c.config.InputFile, "-w", output, "-s", strconv.Itoa(c.config.Threads)}...)
+	}
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	err := cmd.Run()

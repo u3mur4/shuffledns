@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/projectdiscovery/gologger"
-	"github.com/projectdiscovery/shuffledns/pkg/runner"
+	"github.com/u3mur4/shuffledns/pkg/runner"
 )
 
 func main() {

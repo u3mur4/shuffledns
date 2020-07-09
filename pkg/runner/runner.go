@@ -3,7 +3,6 @@ package runner
 import (
 	"bufio"
 	"errors"
-	"io"
 	"io/ioutil"
 	"os"
 	"path"
@@ -11,8 +10,8 @@ import (
 	"time"
 
 	"github.com/projectdiscovery/gologger"
-	"github.com/projectdiscovery/shuffledns/pkg/massdns"
 	"github.com/rs/xid"
+	"github.com/u3mur4/shuffledns/pkg/massdns"
 )
 
 // Runner is a client for running the enumeration process.
@@ -150,14 +149,16 @@ func (r *Runner) processSubdomains() {
 
 	// If there is stdin, write the resolution list to the file
 	if r.options.Stdin {
-		resolveFile = path.Join(r.tempDir, xid.New().String())
-		file, err := os.Create(resolveFile)
-		if err != nil {
-			gologger.Errorf("Could not create resolution list (%s): %s\n", r.tempDir, err)
-			return
-		}
-		io.Copy(file, os.Stdin)
-		file.Close()
+		// resolveFile = path.Join(r.tempDir, xid.New().String())
+		// file, err := os.Create(resolveFile)
+		// if err != nil {
+		// 	gologger.Errorf("Could not create resolution list (%s): %s\n", r.tempDir, err)
+		// 	return
+		// }
+		// io.Copy(file, os.Stdin)
+		// file.Close()
+		r.runMassdnsStdin()
+		return
 	} else {
 		// Use the file if user has provided one
 		resolveFile = r.options.SubdomainsList
@@ -165,6 +166,33 @@ func (r *Runner) processSubdomains() {
 
 	// Run the actual massdns enumeration process
 	r.runMassdns(resolveFile)
+}
+
+// runMassdns runs the massdns tool on the list of inputs
+func (r *Runner) runMassdnsStdin() {
+	massdns, err := massdns.New(massdns.Config{
+		Input:            os.Stdin,
+		Domain:           r.options.Domain,
+		Retries:          r.options.Retries,
+		MassdnsPath:      r.options.MassdnsPath,
+		Threads:          r.options.Threads,
+		WildcardsThreads: r.options.WildcardThreads,
+		ResolversFile:    r.options.ResolversFile,
+		TempDir:          r.tempDir,
+		OutputFile:       r.options.Output,
+		MassdnsRaw:       r.options.MassdnsRaw,
+		StrictWildcard:   r.options.StrictWildcard,
+	})
+	if err != nil {
+		gologger.Errorf("Could not create massdns client: %s\n", err)
+		return
+	}
+
+	err = massdns.Process()
+	if err != nil {
+		gologger.Errorf("Could not run massdns: %s\n", err)
+	}
+	gologger.Infof("Finished resolving. Hack the Planet!\n")
 }
 
 // runMassdns runs the massdns tool on the list of inputs

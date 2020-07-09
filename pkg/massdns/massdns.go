@@ -1,9 +1,10 @@
 package massdns
 
 import (
+	"io"
 	"sync"
 
-	"github.com/projectdiscovery/shuffledns/pkg/wildcards"
+	"github.com/u3mur4/shuffledns/pkg/wildcards"
 )
 
 // Client is a client for running massdns on a target
@@ -18,6 +19,7 @@ type Client struct {
 
 // Config contains configuration options for the massdns client
 type Config struct {
+	Input io.Reader
 	// Domain is the domain specified for enumeration
 	Domain string
 	// Retries is the nmber of retries for dns

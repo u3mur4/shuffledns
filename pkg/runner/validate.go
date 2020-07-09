@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/projectdiscovery/gologger"
-	"github.com/projectdiscovery/shuffledns/pkg/massdns"
+	"github.com/u3mur4/shuffledns/pkg/massdns"
 )
 
 // validateOptions validates the configuration options passed
